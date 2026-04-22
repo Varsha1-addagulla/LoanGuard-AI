@@ -1,0 +1,1885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LoanGuard AI — Personal Loan Risk Assessment</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:        #0c2340;
+      --navy-mid:    #163a5f;
+      --blue:        #1d5fa8;
+      --blue-light:  #2e7dd1;
+      --teal:        #0891b2;
+      --green:       #16a34a;
+      --green-bg:    #f0fdf4;
+      --green-border:#86efac;
+      --amber:       #d97706;
+      --amber-bg:    #fffbeb;
+      --amber-border:#fcd34d;
+      --red:         #dc2626;
+      --red-bg:      #fff1f2;
+      --red-border:  #fca5a5;
+      --bg:          #f0f4f8;
+      --surface:     #ffffff;
+      --border:      #e2e8f0;
+      --border-dark: #cbd5e1;
+      --text:        #0f172a;
+      --text-mid:    #334155;
+      --muted:       #64748b;
+      --muted-light: #94a3b8;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ═══════════════════════════════════════
+       HEADER
+    ═══════════════════════════════════════ */
+    header {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 60%, #1a4f82 100%);
+      color: #fff;
+      padding: 0 2rem;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 16px rgba(0,0,0,.35);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: .85rem;
+    }
+
+    .header-shield {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(145deg, #2e7dd1, #0891b2);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+      flex-shrink: 0;
+    }
+
+    .header-text h1 {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: .3px;
+      line-height: 1.2;
+    }
+    .header-text p {
+      font-size: .72rem;
+      opacity: .65;
+      letter-spacing: .4px;
+      margin-top: 1px;
+    }
+
+    .header-pills {
+      display: flex;
+      gap: .5rem;
+      align-items: center;
+    }
+    .header-pill {
+      font-size: .68rem;
+      font-weight: 600;
+      padding: .28rem .65rem;
+      border-radius: 20px;
+      letter-spacing: .3px;
+      white-space: nowrap;
+    }
+    .pill-blue   { background: rgba(45,125,209,.3); color: #93c5fd; border: 1px solid rgba(45,125,209,.4); }
+    .pill-teal   { background: rgba(8,145,178,.3);  color: #67e8f9; border: 1px solid rgba(8,145,178,.4); }
+    .pill-green  { background: rgba(22,163,74,.3);  color: #86efac; border: 1px solid rgba(22,163,74,.4); }
+
+    @media (max-width: 640px) {
+      .header-pills { display: none; }
+      header { padding: 0 1rem; }
+      .header-text h1 { font-size: 1rem; }
+    }
+
+    /* ═══════════════════════════════════════
+       PAGE LAYOUT
+    ═══════════════════════════════════════ */
+    .page {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1.5rem;
+      max-width: 1320px;
+      margin: 1.75rem auto;
+      padding: 0 1.5rem 4rem;
+    }
+
+    @media (max-width: 900px) {
+      .page { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .page { padding: 0 1rem 3rem; margin-top: 1.25rem; gap: 1rem; }
+    }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR
+    ═══════════════════════════════════════ */
+    .sidebar {
+      position: sticky;
+      top: 84px;
+      align-self: start;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar { position: static; }
+    }
+
+    /* ═══════════════════════════════════════
+       CARDS (generic)
+    ═══════════════════════════════════════ */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+    }
+
+    .card-title {
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 1.25rem;
+      padding-bottom: .85rem;
+      border-bottom: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    /* ═══════════════════════════════════════
+       FORM
+    ═══════════════════════════════════════ */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .85rem;
+    }
+    @media (max-width: 480px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
+
+    .form-group { margin-bottom: .9rem; }
+    .form-group label {
+      display: block;
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin-bottom: .3rem;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+    .input-icon {
+      position: absolute;
+      left: .75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: .9rem;
+      pointer-events: none;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: .62rem .85rem .62rem 2.1rem;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      font-size: .92rem;
+      color: var(--text);
+      background: #fafbfc;
+      transition: border-color .18s, box-shadow .18s, background .18s;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--blue-light);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(45,125,209,.12);
+    }
+    .form-group input::placeholder { color: var(--muted-light); }
+
+    .btn-submit {
+      width: 100%;
+      padding: .85rem 1rem;
+      background: linear-gradient(135deg, var(--blue) 0%, var(--teal) 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: .97rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: .4rem;
+      letter-spacing: .3px;
+      transition: opacity .18s, transform .12s, box-shadow .18s;
+      box-shadow: 0 4px 14px rgba(29,95,168,.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+    }
+    .btn-submit:hover  { opacity: .93; box-shadow: 0 6px 18px rgba(29,95,168,.45); }
+    .btn-submit:active { transform: scale(.98); }
+    .btn-submit:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
+
+    /* Pipeline info card */
+    .pipeline-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.1rem 1.25rem;
+      box-shadow: 0 1px 6px rgba(0,0,0,.05);
+    }
+    .pipeline-card .card-title { font-size: .82rem; margin-bottom: .85rem; padding-bottom: .6rem; }
+
+    .pipeline-step {
+      display: flex;
+      align-items: flex-start;
+      gap: .65rem;
+      padding: .45rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .78rem;
+      color: var(--text-mid);
+      line-height: 1.45;
+    }
+    .pipeline-step:last-child { border-bottom: none; }
+    .pipeline-step-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      flex-shrink: 0;
+    }
+    .pi-blue   { background: #dbeafe; }
+    .pi-purple { background: #ede9fe; }
+    .pi-amber  { background: #fef3c7; }
+    .pi-green  { background: #dcfce7; }
+    .pipeline-step strong { color: var(--navy); }
+
+    /* ═══════════════════════════════════════
+       DISCLAIMER
+    ═══════════════════════════════════════ */
+    .disclaimer-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: .65rem;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-left: 4px solid #0ea5e9;
+      border-radius: 10px;
+      padding: .8rem 1.1rem;
+      font-size: .8rem;
+      color: #0c4a6e;
+      line-height: 1.55;
+      margin-bottom: 1.25rem;
+    }
+    .disclaimer-icon { font-size: 1rem; flex-shrink: 0; margin-top: .05rem; }
+
+    /* ═══════════════════════════════════════
+       CONSISTENCY CHECK CARD
+    ═══════════════════════════════════════ */
+    .consistency-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+    }
+
+    .consistency-banner {
+      padding: 1.1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .consistency-banner.PASS    { background: var(--green-bg); border-bottom: 1px solid var(--green-border); }
+    .consistency-banner.WARNING { background: var(--amber-bg); border-bottom: 1px solid var(--amber-border); }
+    .consistency-banner.FAIL    { background: var(--red-bg);   border-bottom: 1px solid var(--red-border); }
+
+    .consistency-left {
+      display: flex;
+      align-items: center;
+      gap: .85rem;
+    }
+    .consistency-icon {
+      width: 44px; height: 44px;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    .PASS    .consistency-icon { background: #dcfce7; box-shadow: 0 2px 6px rgba(22,163,74,.2); }
+    .WARNING .consistency-icon { background: #fef3c7; box-shadow: 0 2px 6px rgba(217,119,6,.2); }
+    .FAIL    .consistency-icon { background: #fee2e2; box-shadow: 0 2px 6px rgba(220,38,38,.2); }
+
+    .consistency-info h3 {
+      font-size: .95rem;
+      font-weight: 800;
+    }
+    .PASS    .consistency-info h3 { color: #15803d; }
+    .WARNING .consistency-info h3 { color: #92400e; }
+    .FAIL    .consistency-info h3 { color: #991b1b; }
+
+    .consistency-info p {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-top: .15rem;
+      line-height: 1.45;
+    }
+
+    .consistency-score-wrap {
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .consistency-score-num {
+      font-size: 2rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .PASS    .consistency-score-num { color: #15803d; }
+    .WARNING .consistency-score-num { color: #92400e; }
+    .FAIL    .consistency-score-num { color: #991b1b; }
+    .consistency-score-label {
+      font-size: .65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--muted);
+      margin-top: .1rem;
+    }
+
+    .consistency-flags {
+      padding: .9rem 1.5rem;
+    }
+    .no-flags {
+      font-size: .82rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+    .flag-item {
+      display: flex;
+      align-items: flex-start;
+      gap: .55rem;
+      padding: .5rem .7rem;
+      border-radius: 8px;
+      margin-bottom: .4rem;
+      font-size: .8rem;
+      line-height: 1.5;
+    }
+    .flag-item:last-child { margin-bottom: 0; }
+    .flag-critical { background: #fff1f2; border: 1px solid #fca5a5; color: #991b1b; }
+    .flag-high     { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; }
+    .flag-medium   { background: var(--amber-bg); border: 1px solid var(--amber-border); color: #92400e; }
+    .flag-low      { background: #f0f9ff; border: 1px solid #bae6fd; color: #0c4a6e; }
+    .flag-icon { flex-shrink: 0; font-size: .9rem; margin-top: .05rem; }
+    .flag-text { flex: 1; }
+    .flag-severity {
+      font-size: .62rem;
+      font-weight: 800;
+      padding: .1rem .4rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      margin-right: .35rem;
+      white-space: nowrap;
+    }
+    .sev-critical { background: #fca5a5; color: #7f1d1d; }
+    .sev-high     { background: #fed7aa; color: #7c2d12; }
+    .sev-medium   { background: #fcd34d; color: #78350f; }
+    .sev-low      { background: #bae6fd; color: #0c4a6e; }
+
+    /* ═══════════════════════════════════════
+       LOADING
+    ═══════════════════════════════════════ */
+    #loading {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 3rem 2rem;
+      text-align: center;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    }
+
+    .spinner-wrap {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 1.5rem;
+    }
+    .spinner-ring {
+      width: 72px; height: 72px;
+      border: 4px solid #e2e8f0;
+      border-top-color: var(--blue);
+      border-right-color: var(--teal);
+      border-radius: 50%;
+      animation: spin .9s linear infinite;
+      position: absolute;
+      top: 0; left: 0;
+    }
+    .spinner-inner {
+      width: 48px; height: 48px;
+      border: 3px solid #f1f5f9;
+      border-bottom-color: var(--blue-light);
+      border-radius: 50%;
+      animation: spin .65s linear infinite reverse;
+      position: absolute;
+      top: 12px; left: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: .35rem;
+    }
+    .loading-sub {
+      font-size: .8rem;
+      color: var(--muted);
+      margin-bottom: 1.75rem;
+    }
+
+    .loading-steps {
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+      text-align: left;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .lstep {
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+      padding: .55rem .8rem;
+      border-radius: 9px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      transition: all .3s ease;
+    }
+    .lstep.active {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+    }
+    .lstep.done {
+      background: #f0fdf4;
+      border-color: var(--green-border);
+    }
+    .lstep-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border-dark);
+      flex-shrink: 0;
+      transition: background .3s;
+    }
+    .lstep.active .lstep-dot { background: var(--blue); animation: pulse 1s ease-in-out infinite; }
+    .lstep.done  .lstep-dot  { background: var(--green); }
+    @keyframes pulse {
+      0%,100% { transform: scale(1); opacity: 1; }
+      50%      { transform: scale(1.4); opacity: .7; }
+    }
+    .lstep-text {
+      font-size: .78rem;
+      color: var(--muted);
+      transition: color .3s;
+    }
+    .lstep.active .lstep-text { color: var(--blue); font-weight: 600; }
+    .lstep.done  .lstep-text  { color: var(--green); }
+
+    /* ═══════════════════════════════════════
+       ERROR BOX
+    ═══════════════════════════════════════ */
+    .error-box {
+      display: none;
+      background: var(--red-bg);
+      border: 1px solid var(--red-border);
+      border-left: 4px solid var(--red);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      color: var(--red);
+      font-size: .88rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    /* ═══════════════════════════════════════
+       RESULTS
+    ═══════════════════════════════════════ */
+    #results { display: none; }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      margin: 1.75rem 0 .9rem;
+    }
+    .section-header:first-child { margin-top: 0; }
+    .section-icon {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .85rem;
+      flex-shrink: 0;
+    }
+    .si-blue   { background: #dbeafe; }
+    .si-purple { background: #ede9fe; }
+    .si-amber  { background: #fef3c7; }
+    .si-green  { background: #dcfce7; }
+
+    .section-title {
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .9px;
+      color: var(--muted);
+    }
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ═══════════════════════════════════════
+       AGENT CARDS
+    ═══════════════════════════════════════ */
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+    @media (max-width: 640px) {
+      .agent-grid { grid-template-columns: 1fr; }
+    }
+
+    .agent-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .agent-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,.1);
+    }
+
+    .agent-card-header {
+      padding: .75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .agent-card.approve .agent-card-header { background: var(--green-bg);  border-bottom: 1px solid var(--green-border); }
+    .agent-card.review  .agent-card-header { background: var(--amber-bg);  border-bottom: 1px solid var(--amber-border); }
+    .agent-card.reject  .agent-card-header { background: var(--red-bg);    border-bottom: 1px solid var(--red-border); }
+
+    .agent-name-row {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+    }
+    .agent-icon { font-size: 1rem; }
+    .agent-name {
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .badge {
+      font-size: .65rem;
+      font-weight: 800;
+      padding: .22rem .6rem;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      white-space: nowrap;
+    }
+    .badge-approve { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .badge-review  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+    .badge-reject  { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+    .agent-card-body { padding: .9rem 1rem; }
+
+    .conf-row {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      margin-bottom: .75rem;
+    }
+    .conf-label {
+      font-size: .68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .conf-bar-wrap {
+      flex: 1;
+      height: 7px;
+      background: #e2e8f0;
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+    .conf-bar {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width .7s cubic-bezier(.4,0,.2,1);
+    }
+    .conf-pct {
+      font-size: .82rem;
+      font-weight: 800;
+      min-width: 2.6rem;
+      text-align: right;
+    }
+
+    .agent-analysis {
+      font-size: .8rem;
+      color: var(--text-mid);
+      line-height: 1.6;
+      margin-bottom: .75rem;
+    }
+
+    .agent-basis {
+      font-size: .72rem;
+      color: var(--muted-light);
+      font-style: italic;
+      margin-bottom: .65rem;
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+    }
+    .agent-basis::before {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      height: 1.5px;
+      background: var(--muted-light);
+      flex-shrink: 0;
+    }
+
+    .factors { display: flex; flex-wrap: wrap; gap: .3rem; }
+    .factor-tag {
+      font-size: .68rem;
+      padding: .18rem .55rem;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    /* ═══════════════════════════════════════
+       CRITIC DECISION
+    ═══════════════════════════════════════ */
+    .critic-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+    }
+
+    .decision-banner {
+      padding: 1.5rem 1.75rem;
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+    .decision-banner.APPROVED      { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-bottom: 1px solid var(--green-border); }
+    .decision-banner.HUMAN_REVIEW  { background: linear-gradient(135deg, #fffbeb, #fef3c7); border-bottom: 1px solid var(--amber-border); }
+    .decision-banner.AUTO_REJECTED { background: linear-gradient(135deg, #fff1f2, #fee2e2); border-bottom: 1px solid var(--red-border); }
+
+    .decision-icon-wrap {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.7rem;
+      flex-shrink: 0;
+    }
+    .APPROVED      .decision-icon-wrap { background: #dcfce7; box-shadow: 0 2px 8px rgba(22,163,74,.2); }
+    .HUMAN_REVIEW  .decision-icon-wrap { background: #fef3c7; box-shadow: 0 2px 8px rgba(217,119,6,.2); }
+    .AUTO_REJECTED .decision-icon-wrap { background: #fee2e2; box-shadow: 0 2px 8px rgba(220,38,38,.2); }
+
+    .decision-text h2 {
+      font-size: 1.35rem;
+      font-weight: 900;
+      letter-spacing: .3px;
+      line-height: 1.2;
+    }
+    .APPROVED      .decision-text h2 { color: #15803d; }
+    .HUMAN_REVIEW  .decision-text h2 { color: #92400e; }
+    .AUTO_REJECTED .decision-text h2 { color: #991b1b; }
+
+    .decision-text p {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-top: .3rem;
+      line-height: 1.5;
+    }
+
+    .critic-body { padding: 1.25rem 1.75rem; }
+
+    .threshold-note {
+      font-size: .72rem;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: .75rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .threshold-note::before, .threshold-note::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .conf-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: .6rem;
+    }
+    @media (max-width: 640px) {
+      .conf-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .conf-tile {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .7rem .9rem;
+      text-align: center;
+    }
+    .conf-tile-label {
+      font-size: .67rem;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      margin-bottom: .3rem;
+    }
+    .conf-tile-value {
+      font-size: 1.35rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .conf-tile.avg-tile {
+      background: var(--navy);
+      border-color: var(--navy);
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-align: left;
+    }
+    .conf-tile.avg-tile .conf-tile-label { color: rgba(255,255,255,.6); margin-bottom: 0; }
+    .conf-tile.avg-tile .conf-tile-value { color: #fff; font-size: 1.6rem; }
+
+    /* ═══════════════════════════════════════
+       REPORT
+    ═══════════════════════════════════════ */
+    .report-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    }
+
+    .report-header {
+      background: linear-gradient(135deg, var(--navy), var(--navy-mid));
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+    .report-header-icon {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,.15);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+    .report-header h3 {
+      font-size: .95rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .report-header p {
+      font-size: .72rem;
+      color: rgba(255,255,255,.6);
+      margin-top: 1px;
+    }
+
+    .report-body {
+      padding: 1.5rem;
+      font-size: .875rem;
+      line-height: 1.8;
+      color: var(--text-mid);
+      white-space: pre-wrap;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* ═══════════════════════════════════════
+       PRODUCTION READINESS
+    ═══════════════════════════════════════ */
+    .prod-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+    }
+
+    .prod-header {
+      background: linear-gradient(135deg, #1e1b4b, #312e81);
+      padding: 1.1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: .85rem;
+    }
+    .prod-header-icon {
+      width: 38px; height: 38px;
+      background: rgba(255,255,255,.15);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .prod-header-text h3 {
+      font-size: .97rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .prod-header-text p {
+      font-size: .72rem;
+      color: rgba(255,255,255,.55);
+      margin-top: 2px;
+    }
+
+    .prod-body {
+      padding: 1.1rem 1.5rem 1.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: .7rem;
+    }
+
+    .prod-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: start;
+      gap: .9rem;
+      padding: .85rem 1rem;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      transition: background .15s;
+    }
+    .prod-item:hover { background: #f1f5f9; }
+
+    .prod-item-icon {
+      width: 38px; height: 38px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .prod-item-body { min-width: 0; }
+    .prod-item-title {
+      font-size: .87rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: .18rem;
+    }
+    .prod-item-desc {
+      font-size: .76rem;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: .4rem;
+    }
+    .prod-item-api {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      font-size: .7rem;
+      font-weight: 600;
+      color: #3730a3;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 5px;
+      padding: .18rem .55rem;
+    }
+
+    .prod-status {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: .3rem;
+      flex-shrink: 0;
+    }
+    .status-chip {
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+      font-size: .67rem;
+      font-weight: 700;
+      padding: .25rem .6rem;
+      border-radius: 20px;
+      white-space: nowrap;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+    }
+    .chip-prototype {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fcd34d;
+    }
+    .prod-note {
+      font-size: .67rem;
+      color: var(--muted-light);
+      text-align: right;
+      max-width: 160px;
+      line-height: 1.4;
+    }
+
+    .prod-footer {
+      padding: .75rem 1.5rem;
+      background: #f8fafc;
+      border-top: 1px solid var(--border);
+      font-size: .74rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      line-height: 1.5;
+    }
+
+    /* ═══════════════════════════════════════
+       LOAN TYPE SELECTOR
+    ═══════════════════════════════════════ */
+    .loan-type-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .loan-type-inner {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: .25rem;
+    }
+    .loan-type-label {
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      color: var(--muted);
+      padding-right: .75rem;
+      border-right: 1px solid var(--border);
+      margin-right: .5rem;
+      white-space: nowrap;
+    }
+    .loan-type-btn {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      padding: .8rem 1.1rem;
+      font-size: .85rem;
+      font-weight: 600;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: default;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -1px;
+      transition: color .15s, border-color .15s, background .15s;
+      white-space: nowrap;
+    }
+    .loan-type-btn.active {
+      color: var(--blue);
+      border-bottom-color: var(--blue);
+      background: #f0f6ff;
+      cursor: default;
+    }
+    .loan-type-btn.coming-soon {
+      opacity: .55;
+    }
+    .coming-soon-pill {
+      font-size: .58rem;
+      font-weight: 800;
+      padding: .12rem .45rem;
+      background: #f1f5f9;
+      border: 1px solid var(--border-dark);
+      border-radius: 20px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+    @media (max-width: 640px) {
+      .loan-type-label { display: none; }
+      .loan-type-inner { padding: 0 1rem; }
+      .loan-type-btn { padding: .7rem .75rem; font-size: .8rem; }
+    }
+
+    /* ═══════════════════════════════════════
+       SECURITY & GUARDRAILS
+    ═══════════════════════════════════════ */
+    .sec-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+    }
+
+    .sec-header {
+      background: linear-gradient(135deg, #052e16, #14532d);
+      padding: 1.1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: .85rem;
+    }
+    .sec-header-icon {
+      width: 38px; height: 38px;
+      background: rgba(255,255,255,.13);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .sec-header-text h3 {
+      font-size: .97rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .sec-header-text p {
+      font-size: .72rem;
+      color: rgba(255,255,255,.5);
+      margin-top: 2px;
+    }
+
+    .sec-body {
+      padding: 1.1rem 1.5rem 1.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: .7rem;
+    }
+
+    .sec-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: .9rem;
+      padding: .85rem 1rem;
+      background: #fafafa;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      transition: background .15s;
+    }
+    .sec-item:hover { background: #f1f5f9; }
+
+    .sec-item-icon {
+      width: 38px; height: 38px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .sec-item-body { min-width: 0; }
+    .sec-item-title {
+      font-size: .87rem;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: .18rem;
+    }
+    .sec-item-desc {
+      font-size: .76rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .chip-active {
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+      font-size: .67rem;
+      font-weight: 700;
+      padding: .25rem .65rem;
+      border-radius: 20px;
+      white-space: nowrap;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
+      flex-shrink: 0;
+    }
+
+    .sec-footer {
+      padding: .75rem 1.5rem;
+      background: #f0fdf4;
+      border-top: 1px solid #bbf7d0;
+      font-size: .74rem;
+      color: #166534;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      line-height: 1.5;
+    }
+
+    /* ═══════════════════════════════════════
+       SCROLLBAR
+    ═══════════════════════════════════════ */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="header-brand">
+    <div class="header-shield">🛡️</div>
+    <div class="header-text">
+      <h1>LoanGuard AI</h1>
+      <p>Personal Loan Risk Assessment</p>
+    </div>
+  </div>
+  <div class="header-pills">
+    <span class="header-pill pill-blue">7 AI Agents</span>
+    <span class="header-pill pill-teal">Parallel Analysis</span>
+    <span class="header-pill pill-green">Groq LLaMA 3.3</span>
+  </div>
+</header>
+
+<!-- ═══ LOAN TYPE SELECTOR ═══ -->
+<div class="loan-type-bar">
+  <div class="loan-type-inner">
+    <span class="loan-type-label">Loan Type</span>
+    <button class="loan-type-btn active">
+      <span>👤</span> Personal Loan
+    </button>
+    <button class="loan-type-btn coming-soon" disabled title="Coming soon">
+      <span>🚗</span> Auto Loan <span class="coming-soon-pill">Coming Soon</span>
+    </button>
+    <button class="loan-type-btn coming-soon" disabled title="Coming soon">
+      <span>🏠</span> Mortgage <span class="coming-soon-pill">Coming Soon</span>
+    </button>
+  </div>
+</div>
+
+<!-- ═══ PAGE ═══ -->
+<div class="page">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+
+    <!-- Application Form -->
+    <div class="card">
+      <div class="card-title">📋 Loan Application</div>
+      <form id="loanForm">
+        <div class="form-group">
+          <label>Applicant Full Name</label>
+          <div class="input-wrap">
+            <span class="input-icon">👤</span>
+            <input type="text" name="name" placeholder="e.g. Jane Doe" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Loan Amount ($)</label>
+            <div class="input-wrap">
+              <span class="input-icon">💵</span>
+              <input type="number" name="loan_amount" placeholder="25,000" min="1" step="any" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Annual Income ($)</label>
+            <div class="input-wrap">
+              <span class="input-icon">💰</span>
+              <input type="number" name="annual_income" placeholder="65,000" min="1" step="any" required />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Credit Score (300–850)</label>
+            <div class="input-wrap">
+              <span class="input-icon">📊</span>
+              <input type="number" name="credit_score" placeholder="720" min="300" max="850" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Employment Years</label>
+            <div class="input-wrap">
+              <span class="input-icon">🏢</span>
+              <input type="number" name="employment_years" placeholder="4.5" min="0" step="0.5" required />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Existing Debt ($)</label>
+          <div class="input-wrap">
+            <span class="input-icon">⚖️</span>
+            <input type="number" name="existing_debt" placeholder="8,000" min="0" step="any" required />
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <span id="btnIcon">⚡</span>
+          <span id="btnText">Run AI Assessment</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Pipeline card -->
+    <div class="pipeline-card">
+      <div class="card-title" style="font-size:.82rem;">🤖 Agent Pipeline</div>
+
+      <div class="pipeline-step">
+        <div class="pipeline-step-icon pi-blue">⚡</div>
+        <div>
+          <strong>Parallel (Agents 1–4)</strong><br>
+          Credit Analyst · Income Verifier · Risk Assessor · Fraud Detector
+        </div>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-step-icon pi-purple">🔗</div>
+        <div><strong>Sequential (Agent 5)</strong><br>Debt Analyzer — synthesizes parallel results</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-step-icon pi-amber">⚖️</div>
+        <div><strong>Logic Only (Agent 6)</strong><br>Critic Decision — no LLM, pure thresholds</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-step-icon pi-green">📝</div>
+        <div><strong>Report (Agent 7)</strong><br>Report Writer — formal assessment</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <!-- Loading -->
+    <div id="loading">
+      <div class="spinner-wrap">
+        <div class="spinner-ring"></div>
+        <div class="spinner-inner"></div>
+      </div>
+      <div class="loading-title">Analysing Application…</div>
+      <div class="loading-sub">7 AI agents are evaluating the loan risk in real time</div>
+      <div class="loading-steps">
+        <div class="lstep" id="lstep0">
+          <div class="lstep-dot"></div>
+          <div class="lstep-text">🔎 Agent 0 — Consistency Checker validating data integrity</div>
+        </div>
+        <div class="lstep" id="lstep1">
+          <div class="lstep-dot"></div>
+          <div class="lstep-text">⚡ Agents 1–4 running in parallel — Credit · Income · Risk · Fraud</div>
+        </div>
+        <div class="lstep" id="lstep2">
+          <div class="lstep-dot"></div>
+          <div class="lstep-text">🔗 Agent 5 — Debt Analyzer synthesizing results</div>
+        </div>
+        <div class="lstep" id="lstep3">
+          <div class="lstep-dot"></div>
+          <div class="lstep-text">⚖️ Agent 6 — Critic evaluating confidence thresholds</div>
+        </div>
+        <div class="lstep" id="lstep4">
+          <div class="lstep-dot"></div>
+          <div class="lstep-text">📝 Agent 7 — Report Writer generating final report</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results">
+
+      <!-- Disclaimer -->
+      <div class="disclaimer-banner">
+        <span class="disclaimer-icon">ℹ️</span>
+        <span>This is a preliminary AI assessment based on self-reported data. All figures require third-party verification before final approval.</span>
+      </div>
+
+      <!-- Consistency checker -->
+      <div class="section-header">
+        <div class="section-icon" style="background:#f0f9ff;">🔎</div>
+        <div class="section-title">Pre-Assessment Check — Agent 0</div>
+        <div class="section-line"></div>
+      </div>
+      <div id="consistencyResult"></div>
+
+      <!-- Parallel agents -->
+      <div class="section-header">
+        <div class="section-icon si-blue">⚡</div>
+        <div class="section-title">Parallel Agent Analysis — Agents 1–4</div>
+        <div class="section-line"></div>
+      </div>
+      <div class="agent-grid" id="parallelAgents"></div>
+
+      <!-- Debt analyzer -->
+      <div class="section-header">
+        <div class="section-icon si-purple">🔗</div>
+        <div class="section-title">Debt Analysis — Agent 5</div>
+        <div class="section-line"></div>
+      </div>
+      <div id="debtAgent"></div>
+
+      <!-- Critic decision -->
+      <div class="section-header">
+        <div class="section-icon si-amber">⚖️</div>
+        <div class="section-title">Critic Decision — Agent 6 (Logic Only)</div>
+        <div class="section-line"></div>
+      </div>
+      <div class="critic-card" id="criticCard"></div>
+
+      <!-- Report -->
+      <div class="section-header">
+        <div class="section-icon si-green">📝</div>
+        <div class="section-title">Final Report — Agent 7</div>
+        <div class="section-line"></div>
+      </div>
+      <div class="report-card" id="reportCard"></div>
+
+      <!-- Production Readiness -->
+      <div class="section-header" style="margin-top:1.75rem;">
+        <div class="section-icon" style="background:#eef2ff;">🏭</div>
+        <div class="section-title">Production Readiness</div>
+        <div class="section-line"></div>
+      </div>
+
+      <div class="prod-card">
+        <div class="prod-header">
+          <div class="prod-header-icon">🏦</div>
+          <div class="prod-header-text">
+            <h3>Production Deployment Checklist</h3>
+            <p>Integrations required before this system can be used in a regulated banking environment</p>
+          </div>
+        </div>
+
+        <div class="prod-body">
+
+          <!-- Credit Bureau -->
+          <div class="prod-item">
+            <div class="prod-item-icon" style="background:#ede9fe;">📊</div>
+            <div class="prod-item-body">
+              <div class="prod-item-title">Credit Bureau Integration</div>
+              <div class="prod-item-desc">
+                Pull verified hard/soft credit inquiries, tradeline history, derogatory marks, and FICO scores
+                directly from the bureaus. Replace self-reported credit scores with authoritative bureau data.
+              </div>
+              <span class="prod-item-api">🔌 Equifax Developer API &nbsp;·&nbsp; Experian Connect &nbsp;·&nbsp; TransUnion TruVision</span>
+            </div>
+            <div class="prod-status">
+              <span class="status-chip chip-prototype">⚠ Not implemented in prototype</span>
+              <span class="prod-note">Currently uses self-reported credit score only</span>
+            </div>
+          </div>
+
+          <!-- Income Verification -->
+          <div class="prod-item">
+            <div class="prod-item-icon" style="background:#dcfce7;">💰</div>
+            <div class="prod-item-body">
+              <div class="prod-item-title">Income & Employment Verification</div>
+              <div class="prod-item-desc">
+                Connect to applicant bank accounts and payroll providers to verify real income, employment status,
+                and cash flow history in real time. Eliminates reliance on self-reported annual income figures.
+              </div>
+              <span class="prod-item-api">🔌 Plaid Income &nbsp;·&nbsp; Argyle &nbsp;·&nbsp; Pinwheel Payroll API</span>
+            </div>
+            <div class="prod-status">
+              <span class="status-chip chip-prototype">⚠ Not implemented in prototype</span>
+              <span class="prod-note">Currently uses self-reported income only</span>
+            </div>
+          </div>
+
+          <!-- Identity Verification -->
+          <div class="prod-item">
+            <div class="prod-item-icon" style="background:#fef3c7;">🪪</div>
+            <div class="prod-item-body">
+              <div class="prod-item-title">Identity Verification (KYC / AML)</div>
+              <div class="prod-item-desc">
+                Verify applicant identity against government-issued ID documents, run liveness checks,
+                screen against sanctions/PEP lists, and satisfy Know Your Customer and Anti-Money Laundering requirements.
+              </div>
+              <span class="prod-item-api">🔌 Jumio Netverify &nbsp;·&nbsp; Onfido &nbsp;·&nbsp; Stripe Identity &nbsp;·&nbsp; Persona</span>
+            </div>
+            <div class="prod-status">
+              <span class="status-chip chip-prototype">⚠ Not implemented in prototype</span>
+              <span class="prod-note">No identity checks performed in prototype</span>
+            </div>
+          </div>
+
+          <!-- Document OCR -->
+          <div class="prod-item">
+            <div class="prod-item-icon" style="background:#fff7ed;">📄</div>
+            <div class="prod-item-body">
+              <div class="prod-item-title">Document OCR & Extraction</div>
+              <div class="prod-item-desc">
+                Extract and validate structured data from uploaded pay stubs, W-2s, tax returns (1040), and
+                bank statements. Cross-reference extracted figures against self-reported values to detect mismatches.
+              </div>
+              <span class="prod-item-api">🔌 AWS Textract &nbsp;·&nbsp; Google Document AI &nbsp;·&nbsp; Microsoft Azure Form Recognizer</span>
+            </div>
+            <div class="prod-status">
+              <span class="status-chip chip-prototype">⚠ Not implemented in prototype</span>
+              <span class="prod-note">No document upload or parsing in prototype</span>
+            </div>
+          </div>
+
+          <!-- Compliance -->
+          <div class="prod-item">
+            <div class="prod-item-icon" style="background:#fff1f2;">⚖️</div>
+            <div class="prod-item-body">
+              <div class="prod-item-title">Regulatory Compliance Layer</div>
+              <div class="prod-item-desc">
+                Ensure AI decisions comply with FCRA (Fair Credit Reporting Act), ECOA (Equal Credit Opportunity Act),
+                and CFPB guidelines. Requires explainability logging, adverse action notices, and bias auditing on
+                all model outputs before any credit decision is communicated to an applicant.
+              </div>
+              <span class="prod-item-api">🔌 Custom compliance layer &nbsp;·&nbsp; Pagaya &nbsp;·&nbsp; Zest AI Fair Lending</span>
+            </div>
+            <div class="prod-status">
+              <span class="status-chip chip-prototype">⚠ Not implemented in prototype</span>
+              <span class="prod-note">No adverse action notices, FCRA/ECOA compliance, or bias auditing</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="prod-footer">
+          🔒 <span>This prototype demonstrates AI agent orchestration and risk reasoning logic only. It must not be used to make or communicate actual credit decisions to applicants without the above production integrations in place.</span>
+        </div>
+      </div>
+
+      <!-- Security & Guardrails -->
+      <div class="section-header" style="margin-top:1.75rem;">
+        <div class="section-icon" style="background:#dcfce7;">🔒</div>
+        <div class="section-title">Security &amp; Guardrails</div>
+        <div class="section-line"></div>
+      </div>
+
+      <div class="sec-card">
+        <div class="sec-header">
+          <div class="sec-header-icon">🛡️</div>
+          <div class="sec-header-text">
+            <h3>Active Security Controls</h3>
+            <p>Guardrails enforced on every assessment request in this prototype</p>
+          </div>
+        </div>
+
+        <div class="sec-body">
+
+          <div class="sec-item">
+            <div class="sec-item-icon" style="background:#dbeafe;">🧹</div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">Input Validation</div>
+              <div class="sec-item-desc">
+                All form fields are validated server-side for type, range, and format before any processing begins.
+                Numeric fields are coerced and clamped (e.g. credit score 300–850); string fields are length-limited.
+                Malformed or missing values are rejected with a structured error before reaching any agent.
+              </div>
+            </div>
+            <span class="chip-active">✔ Active</span>
+          </div>
+
+          <div class="sec-item">
+            <div class="sec-item-icon" style="background:#fce7f3;">🚫</div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">Prompt Injection Protection</div>
+              <div class="sec-item-desc">
+                All user-supplied text (applicant name and numeric fields rendered as strings) is stripped of
+                control characters, angle brackets, and common injection patterns before interpolation into LLM
+                prompts. Structured field values are inserted as data literals, not freeform instruction text,
+                limiting the attack surface for adversarial prompt overrides.
+              </div>
+            </div>
+            <span class="chip-active">✔ Active</span>
+          </div>
+
+          <div class="sec-item">
+            <div class="sec-item-icon" style="background:#fef3c7;">🔏</div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">PII Handling</div>
+              <div class="sec-item-desc">
+                No application data is persisted to disk, a database, or any external service. All fields are held
+                exclusively in request-scoped memory and discarded when the HTTP response is returned. The server
+                holds no session state between requests.
+              </div>
+            </div>
+            <span class="chip-active">✔ Active</span>
+          </div>
+
+          <div class="sec-item">
+            <div class="sec-item-icon" style="background:#ede9fe;">📐</div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">Output Filtering</div>
+              <div class="sec-item-desc">
+                Every agent response is parsed against a strict JSON schema before the result is used downstream.
+                Required fields (<code style="font-size:.72rem;background:#f1f5f9;padding:.05rem .3rem;border-radius:4px;">recommendation</code>,
+                <code style="font-size:.72rem;background:#f1f5f9;padding:.05rem .3rem;border-radius:4px;">confidence</code>,
+                <code style="font-size:.72rem;background:#f1f5f9;padding:.05rem .3rem;border-radius:4px;">analysis</code>,
+                <code style="font-size:.72rem;background:#f1f5f9;padding:.05rem .3rem;border-radius:4px;">key_factors</code>)
+                are enforced with type checking. Responses that fail schema validation are rejected and surfaced as
+                agent errors rather than silently passed to the critic.
+              </div>
+            </div>
+            <span class="chip-active">✔ Active</span>
+          </div>
+
+          <div class="sec-item">
+            <div class="sec-item-icon" style="background:#dcfce7;">📋</div>
+            <div class="sec-item-body">
+              <div class="sec-item-title">Audit Trail</div>
+              <div class="sec-item-desc">
+                Every assessment emits a structured log entry containing: UTC timestamp, per-agent recommendation
+                and confidence score, critic decision, and average confidence. Log records are written to
+                <code style="font-size:.72rem;background:#f1f5f9;padding:.05rem .3rem;border-radius:4px;">stdout</code>
+                in JSON format so they can be ingested by any log aggregation pipeline (e.g. CloudWatch, Datadog)
+                without code changes.
+              </div>
+            </div>
+            <span class="chip-active">✔ Active</span>
+          </div>
+
+        </div>
+
+        <div class="sec-footer">
+          🔒 <span>These controls are active in the current prototype. A production deployment would additionally require TLS termination, rate limiting, WAF rules, and a dedicated secrets manager for API key rotation.</span>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  const form      = document.getElementById('loanForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const btnIcon   = document.getElementById('btnIcon');
+  const btnText   = document.getElementById('btnText');
+  const loading   = document.getElementById('loading');
+  const results   = document.getElementById('results');
+  const errorBox  = document.getElementById('errorBox');
+
+  const AGENT_ICONS = {
+    'Credit Analyst':  '💳',
+    'Income Verifier': '💰',
+    'Risk Assessor':   '⚠️',
+    'Fraud Detector':  '🔍',
+    'Debt Analyzer':   '📊',
+  };
+
+  const AGENT_BASIS = {
+    'Credit Analyst':  'Based on industry credit scoring standards',
+    'Income Verifier': 'Based on debt-to-income ratio analysis',
+    'Fraud Detector':  'Based on internal consistency checks — production system would verify via Plaid and Equifax',
+  };
+
+  /* ── Helpers ── */
+  function confColor(v) {
+    if (v >= 75) return '#16a34a';
+    if (v >= 50) return '#d97706';
+    return '#dc2626';
+  }
+
+  function recClass(rec) {
+    const r = (rec || '').toLowerCase();
+    if (r === 'approve') return 'approve';
+    if (r === 'review')  return 'review';
+    return 'reject';
+  }
+
+  function badgeClass(rec) {
+    const r = (rec || '').toLowerCase();
+    if (r === 'approve') return 'badge-approve';
+    if (r === 'review')  return 'badge-review';
+    return 'badge-reject';
+  }
+
+  function esc(str) {
+    return String(str ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ── Build consistency card ── */
+  function buildConsistency(c) {
+    const status = c.status || 'FAIL';
+    const score  = c.consistency_score ?? 0;
+    const icons  = { PASS: '✅', WARNING: '⚠️', FAIL: '❌' };
+    const titles = { PASS: 'Data Consistency — All Clear', WARNING: 'Data Consistency — Warnings Detected', FAIL: 'Data Consistency — Critical Issues Found' };
+
+    const SEVERITY_CLASS = { CRITICAL: 'flag-critical', HIGH: 'flag-high', MEDIUM: 'flag-medium', LOW: 'flag-low' };
+    const SEV_BADGE      = { CRITICAL: 'sev-critical',  HIGH: 'sev-high',  MEDIUM: 'sev-medium',  LOW: 'sev-low'  };
+    const SEV_ICON       = { CRITICAL: '🚫', HIGH: '⚠️', MEDIUM: '⚡', LOW: 'ℹ️' };
+
+    let flagsHtml = '';
+    if (!c.flags || c.flags.length === 0) {
+      flagsHtml = `<div class="no-flags">✅ No consistency issues detected — all fields appear internally valid.</div>`;
+    } else {
+      flagsHtml = (c.flags || []).map(f => {
+        // Parse "[SEVERITY] message" format
+        const match = f.match(/^\[([A-Z]+)\]\s*(.*)/s);
+        const sev = match ? match[1] : 'MEDIUM';
+        const msg = match ? match[2] : f;
+        const cls = SEVERITY_CLASS[sev] || 'flag-medium';
+        const badge = SEV_BADGE[sev] || 'sev-medium';
+        const icon  = SEV_ICON[sev]  || '⚡';
+        return `
+          <div class="flag-item ${cls}">
+            <span class="flag-icon">${icon}</span>
+            <span class="flag-text">
+              <span class="flag-severity ${badge}">${sev}</span>${esc(msg)}
+            </span>
+          </div>`;
+      }).join('');
+    }
+
+    return `
+      <div class="consistency-card">
+        <div class="consistency-banner ${status}">
+          <div class="consistency-left">
+            <div class="consistency-icon">${icons[status] || '❓'}</div>
+            <div class="consistency-info">
+              <h3>${titles[status] || status}</h3>
+              <p>${esc(c.summary || '')}</p>
+            </div>
+          </div>
+          <div class="consistency-score-wrap">
+            <div class="consistency-score-num">${score}</div>
+            <div class="consistency-score-label">/ 100</div>
+          </div>
+        </div>
+        ${c.flags && c.flags.length > 0 ? `<div class="consistency-flags">${flagsHtml}</div>` : `<div class="consistency-flags">${flagsHtml}</div>`}
+      </div>`;
+  }
+
+  /* ── Build agent card ── */
+  function buildAgentCard(r) {
+    const conf  = parseFloat(r.confidence || 0).toFixed(1);
+    const rec   = (r.recommendation || 'reject').toLowerCase();
+    const icon  = AGENT_ICONS[r.agent] || '🤖';
+    const color = confColor(parseFloat(conf));
+    const factors = (r.key_factors || [])
+      .map(f => `<span class="factor-tag">${esc(f)}</span>`).join('');
+
+    return `
+      <div class="agent-card ${recClass(rec)}">
+        <div class="agent-card-header">
+          <div class="agent-name-row">
+            <span class="agent-icon">${icon}</span>
+            <span class="agent-name">${esc(r.agent || 'Agent')}</span>
+          </div>
+          <span class="badge ${badgeClass(rec)}">${esc(rec)}</span>
+        </div>
+        <div class="agent-card-body">
+          <div class="conf-row">
+            <span class="conf-label">Confidence</span>
+            <div class="conf-bar-wrap">
+              <div class="conf-bar" style="width:${conf}%;background:${color}"></div>
+            </div>
+            <span class="conf-pct" style="color:${color}">${conf}%</span>
+          </div>
+          ${AGENT_BASIS[r.agent] ? `<div class="agent-basis">${esc(AGENT_BASIS[r.agent])}</div>` : ''}
+          <div class="agent-analysis">${esc(r.analysis || '')}</div>
+          <div class="factors">${factors}</div>
+        </div>
+      </div>`;
+  }
+
+  /* ── Build critic section ── */
+  function buildCritic(c) {
+    const dec = c.decision || 'AUTO_REJECTED';
+    const avg = parseFloat(c.average_confidence || 0).toFixed(1);
+    const ICONS  = { APPROVED:'✅', HUMAN_REVIEW:'🔍', AUTO_REJECTED:'❌' };
+    const LABELS = { APPROVED:'Approved', HUMAN_REVIEW:'Flagged for Human Review', AUTO_REJECTED:'Auto-Rejected' };
+
+    let tiles = `
+      <div class="conf-tile avg-tile">
+        <div>
+          <div class="conf-tile-label">Average Confidence Score</div>
+        </div>
+        <div class="conf-tile-value">${avg}%</div>
+      </div>`;
+
+    for (const [label, val] of Object.entries(c.individual_confidences || {})) {
+      tiles += `
+        <div class="conf-tile">
+          <div class="conf-tile-label">${esc(label)}</div>
+          <div class="conf-tile-value" style="color:${confColor(parseFloat(val))}">${val}%</div>
+        </div>`;
+    }
+
+    return `
+      <div class="decision-banner ${dec}">
+        <div class="decision-icon-wrap">${ICONS[dec] || '❓'}</div>
+        <div class="decision-text">
+          <h2>${LABELS[dec] || dec}</h2>
+          <p>${esc(c.reason || '')}</p>
+        </div>
+      </div>
+      <div class="critic-body">
+        <div class="threshold-note">&lt;50% Auto-Reject &nbsp;·&nbsp; 50–75% Human Review &nbsp;·&nbsp; &gt;75% Approve</div>
+        <div class="conf-grid">${tiles}</div>
+      </div>`;
+  }
+
+  /* ── Build report ── */
+  function buildReport(r) {
+    return `
+      <div class="report-header">
+        <div class="report-header-icon">📄</div>
+        <div>
+          <h3>Formal Loan Assessment Report</h3>
+          <p>Generated by LoanGuard AI — Report Writer Agent</p>
+        </div>
+      </div>
+      <div class="report-body">${esc(r.report || '')}</div>`;
+  }
+
+  /* ── Loading animation ── */
+  const lstepIds = ['lstep0','lstep1','lstep2','lstep3','lstep4'];
+  const lstepDelays = [0, 1500, 6000, 10000, 14000];
+
+  function startLoading() {
+    lstepIds.forEach(id => {
+      document.getElementById(id).className = 'lstep';
+    });
+    document.getElementById('lstep1').className = 'lstep active';
+    lstepDelays.slice(1).forEach((delay, i) => {
+      setTimeout(() => {
+        if (loading.style.display === 'none') return;
+        document.getElementById(lstepIds[i]).className = 'lstep done';
+        document.getElementById(lstepIds[i + 1]).className = 'lstep active';
+      }, delay);
+    });
+  }
+
+  /* ── Form submit ── */
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    errorBox.style.display = 'none';
+    results.style.display  = 'none';
+    loading.style.display  = 'block';
+    submitBtn.disabled     = true;
+    btnIcon.textContent    = '⏳';
+    btnText.textContent    = 'Analysing…';
+
+    startLoading();
+
+    try {
+      const resp = await fetch('/assess', { method: 'POST', body: new FormData(form) });
+      const res = await resp.json();
+      if (res.error) throw new Error(res.error);
+
+      /* Mark all steps done */
+      lstepIds.forEach(id => document.getElementById(id).className = 'lstep done');
+
+      /* Consistency checker */
+      document.getElementById('consistencyResult').innerHTML = res.consistency_checker
+        ? buildConsistency(res.consistency_checker) : '';
+
+      /* Parallel agents */
+      const parallelEl = document.getElementById('parallelAgents');
+      parallelEl.innerHTML = '';
+      ['credit_analyst','income_verifier','risk_assessor','fraud_detector'].forEach(k => {
+        if (res[k]) parallelEl.innerHTML += buildAgentCard(res[k]);
+      });
+
+      /* Debt analyzer */
+      document.getElementById('debtAgent').innerHTML = res.debt_analyzer
+        ? `<div class="agent-grid">${buildAgentCard(res.debt_analyzer)}</div>` : '';
+
+      /* Critic */
+      document.getElementById('criticCard').innerHTML = res.critic
+        ? buildCritic(res.critic) : '<p style="padding:1rem;color:var(--muted)">No decision available.</p>';
+
+      /* Report */
+      document.getElementById('reportCard').innerHTML = res.report
+        ? buildReport(res.report) : '<p style="padding:1rem;color:var(--muted)">No report available.</p>';
+
+      loading.style.display = 'none';
+      results.style.display = 'block';
+      window.scrollTo({ top: document.getElementById('results').offsetTop - 84, behavior: 'smooth' });
+
+    } catch (err) {
+      loading.style.display  = 'none';
+      errorBox.style.display = 'block';
+      errorBox.textContent   = '⚠️ ' + err.message;
+    } finally {
+      submitBtn.disabled  = false;
+      btnIcon.textContent = '⚡';
+      btnText.textContent = 'Run AI Assessment';
+    }
+  });
+</script>
+</body>
+</html>
