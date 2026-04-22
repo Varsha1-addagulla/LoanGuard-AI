@@ -134,7 +134,7 @@ Write a formal report with these five clearly labeled sections:
 Each section should be 1-2 substantive paragraphs. Use formal banking language.
 Reference specific Fannie Mae threshold values by number throughout (do not paraphrase them)."""
 
-    report_text = call_llm(SYSTEM, prompt, max_tokens=2048)
+    report_text = call_llm(SYSTEM, prompt, max_tokens=600)
 
     return {
         "agent": "Report Writer",

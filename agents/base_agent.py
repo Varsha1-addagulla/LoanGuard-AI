@@ -4,7 +4,7 @@ import re
 from groq import Groq
 
 
-def call_llm(system_prompt: str, user_prompt: str, max_tokens: int = 1024) -> str:
+def call_llm(system_prompt: str, user_prompt: str, max_tokens: int = 300) -> str:
     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
