@@ -9,3 +9,5 @@ build/
 *.log
 .env
 .env.txt
+.env.txt
+.env
