@@ -11,3 +11,5 @@ build/
 .env.txt
 .env.txt
 .env
+".env.txt" 
+".env" 
